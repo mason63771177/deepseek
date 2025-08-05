@@ -62,10 +62,16 @@ def telegram_webhook():
     
     return "OK", 200
 
+
+
 # 在 app.py 的末尾添加
 if __name__ == '__main__':
     print("✅ 环境变量加载状态:")
     print(f"BOT_TOKEN: {'已设置' if BOT_TOKEN else '未设置'}")
     print(f"DEEPSEEK_API_KEY: {'已设置' if DEEPSEEK_API_KEY else '未设置'}")
     print(f"AUTHORIZED_USERS: {AUTHORIZED_USERS}")
+    # 在 app.py 的权限检查部分添加
+    print(f"Received message from user: {user_id}")
+    print(f"Authorized users: {AUTHORIZED_USERS}")
+    print(f"Is authorized: {user_id in AUTHORIZED_USERS}")
     app.run(host='0.0.0.0', port=os.getenv('PORT', 10000))
