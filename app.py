@@ -1,32 +1,28 @@
-# app.py
 import os
 import requests
 from flask import Flask, request
+from dotenv import load_dotenv
+
+load_dotenv()  # 加载环境变量
 
 app = Flask(__name__)
 
 # 从环境变量获取配置
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
-YOUR_TELEGRAM_ID = os.getenv('YOUR_TELEGRAM_ID', '')  # 添加您的专属ID
-API_URL = "https://api.deepseek.com/v1/chat/completions"
-
-def is_authorized(user_id):
-    """检查用户是否在白名单内"""
-    allowed_ids = [id.strip() for id in YOUR_TELEGRAM_ID.split(',') if id.strip()]
-    return str(user_id) in allowed_ids
+AUTHORIZED_USERS = os.getenv('AUTHORIZED_USERS', '').split(',')  # 允许使用的用户ID
 
 @app.route('/webhook', methods=['POST'])
 def telegram_webhook():
     try:
         data = request.json
         message = data.get('message', {})
-        user_id = message['from']['id']
+        user_id = str(message['from']['id'])
         chat_id = message['chat']['id']
         text = message.get('text', '')
         
         # 权限验证
-        if not is_authorized(user_id):
+        if user_id not in AUTHORIZED_USERS:
             requests.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                 json={"chat_id": chat_id, "text": "🚫 未授权访问"}
@@ -43,7 +39,12 @@ def telegram_webhook():
             "messages": [{"role": "user", "content": text}]
         }
         
-        response = requests.post(API_URL, json=payload, headers=headers, timeout=30)
+        response = requests.post(
+            "https://api.deepseek.com/v1/chat/completions",
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
         ai_reply = response.json()['choices'][0]['message']['content']
         
         # 回复给 Telegram
@@ -52,8 +53,14 @@ def telegram_webhook():
         
     except Exception as e:
         print(f"⚠️ 错误: {str(e)}")
+        # 发送错误通知
+        if 'chat_id' in locals():
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": chat_id, "text": f"⚠️ 服务错误: {str(e)}"}
+            )
     
     return "OK", 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(host='0.0.0.0', port=os.getenv('PORT', 10000))
