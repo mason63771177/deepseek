@@ -50,7 +50,7 @@ def telegram_webhook():
         # 默认先回复一个“收到消息”提示
         requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": "🤖 我收到了您的消息，请稍等..."}
+            json={"chat_id": chat_id, "text": "🤖 思考中，请稍等..."}
         )
 
         # 上下文初始化
